@@ -10,6 +10,8 @@ Streamlit webová aplikace pro konverzi Excel souborů (`.xlsx`) do HTML fragmen
 **GitHub repo:** `Marco-BBN/excel-parser-online`
 **GitHub účet:** `ondrejvrtel` (přihlašovací email: ondrej.vrtel@marco.eu)
 
+**Adresa projektu:** fenix-excel-parser-online.streamlit.app
+
 ## Struktura souborů
 
 ```
@@ -43,10 +45,11 @@ Výstup jsou vždy **HTML fragmenty** (ne celé stránky) — pouze `<h4>` + `<t
 ### `app.py`
 
 - Upload `.xlsx` přes `st.file_uploader`
-- Sidebar: přepínač Tabulky / Kartičky + pole pro přeskočené záložky (výchozí: `seznam`)
+- Sidebar: pole pro přeskočené záložky (výchozí: `seznam`)
 - Každá záložka Excelu = jeden Streamlit tab (`st.tabs`)
-- **Náhled** v `st.components.v1.html()` — lze označit a CTRL+C do WYSIWYG editoru
-- **HTML kód** v `st.code()` — tlačítko kopírovat pro WordPress HTML editor
+- Na každém listu se **automaticky spustí oba parsery** — není třeba ručně vybírat typ
+- **Náhled celého listu** v `st.components.v1.html()` — lze označit a CTRL+C do WYSIWYG editoru
+- **Per-tabulka HTML kód** — každá tabulka/kartička má vlastní rozkliknutelný `📋 Název` s `st.code()` a tlačítkem kopírovat
 
 ## Pravidla pro strukturu Excelu
 
@@ -95,17 +98,16 @@ git push
 → upravte `PREVIEW_CSS` string v `app.py`
 
 **Přidat třetí typ parseru:**
-1. Přidejte parse + fragment funkce do `parsers.py`
-2. Přidejte volbu do `st.radio` v `app.py`
-3. Přidejte větev do podmínky `if/elif` v hlavní smyčce přes záložky
+1. Přidejte `parse_X(sheet)` a `X_to_fragment(item)` funkce do `parsers.py`
+2. Zavolejte nový parser v hlavní smyčce v `app.py` (vedle `parse_tables` a `parse_cards`)
+3. Přidejte per-item copy sekci do smyčky výstupu
 
 ## Workflow uživatele
 
 1. Nahrát `.xlsx` soubor
-2. Vybrat typ parseru (Tabulky / Kartičky)
-3. Procházet záložky (= záložky v Excelu)
-4. **Pro WYSIWYG editor:** označit tabulku v náhledu → CTRL+C → vložit do WordPress vizuálního editoru
-5. **Pro HTML editor:** rozbalit "📋 HTML kód" → kliknout kopírovat → vložit do WordPress HTML editoru
+2. Procházet záložky (= záložky v Excelu) — typ tabulky se detekuje automaticky
+3. **Pro WYSIWYG editor:** označit obsah v náhledu celého listu → CTRL+C → vložit do WordPress vizuálního editoru
+4. **Pro HTML editor:** rozbalit `📋 Název tabulky` → kliknout kopírovat → vložit do WordPress HTML editoru
 
 ## Jazyk
 
