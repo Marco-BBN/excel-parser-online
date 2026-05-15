@@ -125,24 +125,27 @@ def parse_tables(rows: list) -> list:
     return tables
 
 
-def tables_to_fragment(tables: list) -> str:
+def table_to_fragment(t: dict) -> str:
     lines = []
-    for t in tables:
-        if t["title"]:
-            lines.append(f'<h4>{escape_html(t["title"])}</h4>')
-        lines.append('<table class="basic-table">')
-        lines.append("<thead><tr>")
-        for h in t["headers"]:
-            lines.append(f"<th>{escape_html(h)}</th>")
-        lines.append("</tr></thead>")
-        lines.append("<tbody>")
-        for row in t["rows"]:
-            lines.append("<tr>")
-            for cell in row:
-                lines.append(f"<td>{escape_html(format_val(cell))}</td>")
-            lines.append("</tr>")
-        lines.append("</tbody></table>")
+    if t["title"]:
+        lines.append(f'<h4>{escape_html(t["title"])}</h4>')
+    lines.append('<table class="basic-table">')
+    lines.append("<thead><tr>")
+    for h in t["headers"]:
+        lines.append(f"<th>{escape_html(h)}</th>")
+    lines.append("</tr></thead>")
+    lines.append("<tbody>")
+    for row in t["rows"]:
+        lines.append("<tr>")
+        for cell in row:
+            lines.append(f"<td>{escape_html(format_val(cell))}</td>")
+        lines.append("</tr>")
+    lines.append("</tbody></table>")
     return "\n".join(lines)
+
+
+def tables_to_fragment(tables: list) -> str:
+    return "\n".join(table_to_fragment(t) for t in tables)
 
 
 # ---------------------------------------------------------------------------
@@ -195,18 +198,21 @@ def parse_cards(sheet) -> list:
     return products
 
 
-def cards_to_fragment(products: list) -> str:
+def card_to_fragment(p: dict) -> str:
     lines = []
-    for p in products:
-        lines.append('<table class="basic-table">')
-        lines.append("<thead><tr>")
-        lines.append(f'<th colspan="2">{escape_html(p["title"])}</th>')
-        lines.append("</tr></thead>")
-        lines.append("<tbody>")
-        for key, val in p["params"]:
-            lines.append(f"<tr><td>{escape_html(key)}</td><td>{escape_html(val)}</td></tr>")
-        lines.append("</tbody></table>")
+    lines.append('<table class="basic-table">')
+    lines.append("<thead><tr>")
+    lines.append(f'<th colspan="2">{escape_html(p["title"])}</th>')
+    lines.append("</tr></thead>")
+    lines.append("<tbody>")
+    for key, val in p["params"]:
+        lines.append(f"<tr><td>{escape_html(key)}</td><td>{escape_html(val)}</td></tr>")
+    lines.append("</tbody></table>")
     return "\n".join(lines)
+
+
+def cards_to_fragment(products: list) -> str:
+    return "\n".join(card_to_fragment(p) for p in products)
 
 
 def check_issues(sheet_name: str, products: list) -> list:

@@ -6,10 +6,12 @@ import streamlit as st
 from parsers import (
     DEFAULT_SKIP_SHEETS,
     build_rows,
+    card_to_fragment,
     cards_to_fragment,
     check_issues,
     parse_cards,
     parse_tables,
+    table_to_fragment,
     tables_to_fragment,
 )
 
@@ -28,12 +30,11 @@ PREVIEW_CSS = """
 """
 
 # ---------------------------------------------------------------------------
-# Sidebar — nastavení
+# Sidebar
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
     st.header("Nastavení")
-    mode = st.radio("Typ parseru", ["Tabulky (horizontální)", "Kartičky (vertikální)"])
     skip_input = st.text_input(
         "Přeskočit záložky (oddělené čárkou)",
         value=", ".join(DEFAULT_SKIP_SHEETS),
@@ -66,37 +67,42 @@ tabs = st.tabs(sheet_names)
 for tab, sheet_name in zip(tabs, sheet_names):
     with tab:
         sheet = wb[sheet_name]
-        is_cards = mode.startswith("Kartičky")
 
-        if is_cards:
-            items = parse_cards(sheet)
-            fragment = cards_to_fragment(items) if items else ""
-            issues = check_issues(sheet_name, items) if items else []
-            count_label = f"{len(items)} produktů"
-        else:
-            rows = build_rows(sheet)
-            items = parse_tables(rows)
-            fragment = tables_to_fragment(items) if items else ""
-            issues = []
-            count_label = f"{len(items)} tabulek"
+        rows = build_rows(sheet)
+        tables = parse_tables(rows)
+        cards = parse_cards(sheet)
 
-        if not items:
+        if not tables and not cards:
             st.warning(f"Záložka '{sheet_name}': žádný obsah nenalezen.")
             continue
 
-        st.caption(count_label)
+        # Souhrnný náhled pro select+copy do WYSIWYG
+        all_html = tables_to_fragment(tables) + ("\n" if tables and cards else "") + cards_to_fragment(cards)
+        row_count = sum(len(t["rows"]) for t in tables) + sum(len(p["params"]) for p in cards)
+        preview_height = max(300, min(900, 60 + row_count * 28 + (len(tables) + len(cards)) * 50))
 
-        if issues:
-            with st.expander(f"⚠ Upozornění ({len(issues)})", expanded=False):
-                for issue in issues:
-                    st.warning(issue)
+        with st.expander("🔍 Náhled celého listu (označit → CTRL+C do WYSIWYG)", expanded=True):
+            st.components.v1.html(PREVIEW_CSS + all_html, height=preview_height, scrolling=True)
 
-        # --- Náhled (lze označit a CTRL+C do WYSIWYG) ---
-        row_count = sum(len(t["rows"]) for t in items) if not is_cards else sum(len(p["params"]) for p in items)
-        preview_height = max(300, min(800, 60 + row_count * 28 + len(items) * 50))
+        st.divider()
 
-        st.components.v1.html(PREVIEW_CSS + fragment, height=preview_height, scrolling=True)
+        # Upozornění karet
+        if cards:
+            issues = check_issues(sheet_name, cards)
+            if issues:
+                with st.expander(f"⚠ Upozornění ({len(issues)})"):
+                    for issue in issues:
+                        st.warning(issue)
 
-        # --- HTML ke zkopírování do WordPress HTML editoru ---
-        with st.expander("📋 HTML kód (pro WordPress HTML editor)"):
-            st.code(fragment, language="html")
+        # Per-tabulka copy sekce
+        total = len(tables) + len(cards)
+        st.caption(f"{total} {'blok' if total == 1 else 'bloky' if 2 <= total <= 4 else 'bloků'} — HTML kód ke zkopírování:")
+
+        for t in tables:
+            label = t["title"] or "(bez názvu)"
+            with st.expander(f"📋 {label}"):
+                st.code(table_to_fragment(t), language="html")
+
+        for p in cards:
+            with st.expander(f"📋 {p['title']}"):
+                st.code(card_to_fragment(p), language="html")
